@@ -81,7 +81,12 @@ export class CviInstallationService {
   }
 
   describe(root: string, source: CviInstallation['source']): CviInstallation {
-    const normalizedRoot = path.normalize(root);
+    let normalizedRoot = path.normalize(root);
+    try {
+      normalizedRoot = fs.realpathSync.native(normalizedRoot);
+    } catch {
+      // ignore if path does not exist on disk
+    }
     return {
       root: normalizedRoot,
       label: path.basename(normalizedRoot),
