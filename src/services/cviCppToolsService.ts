@@ -586,7 +586,7 @@ export class CviCppToolsService implements vscode.Disposable {
         this.output.appendLine(`[CVI] Cannot collect IntelliSense paths from ${projectRef.absolutePath}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
-    return unique(directories.filter((entry) => fs.existsSync(entry)).map(toForwardSlashes));
+    return unique(directories.filter((entry) => fs.existsSync(entry)).map(trueCasePath).map(toForwardSlashes));
   }
 
   private resolveCompilerPath(installation: CviInstallation): string | undefined {
@@ -847,6 +847,14 @@ function existingPath(value: string): string | undefined {
 
 function toForwardSlashes(value: string): string {
   return value.replace(/\\/g, '/');
+}
+
+function trueCasePath(value: string): string {
+  try {
+    return fs.realpathSync.native(value);
+  } catch {
+    return value;
+  }
 }
 
 function unique(values: string[]): string[] {
