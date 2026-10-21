@@ -251,6 +251,115 @@ export class CviBuildService {
     }
   }
 
+async batchBuildModal(projectRef?: CviWorkspaceProjectRef): Promise<void> {
+    const ref = projectRef ?? this.workspaces.activeProjectRef;
+    if (!ref?.exists) {
+      vscode.window.showErrorMessage('No existing active CVI project is available for batch build.');
+      return;
+    }
+
+    // 1. Define the 4 standard profiles
+    const modeItems: Array<{ label: string; description: string; mode: CviBuildMode; isCustom?: boolean; customName?: string }> = [
+      { label: 'Debug (D32)', description: '32-bit Debug configuration', mode: 'debug' },
+      { label: 'Release (R32)', description: '32-bit Release configuration', mode: 'release' },
+      { label: 'Debug64 (D64)', description: '64-bit Debug configuration', mode: 'debug64' },
+      { label: 'Release64 (R64)', description: '64-bit Release configuration', mode: 'release64' }
+    ];
+
+    // 2. Read the .prj file to find custom configurations
+    try {
+      const prjContent = fs.readFileSync(ref.absolutePath, 'utf-8');
+      const customRegex = /^\[Build Config \d+ (.+)\]$/gm;
+      const standardConfigs = ['Debug', 'Release', 'Debug64', 'Release64'];
+      let match;
+      
+      while ((match = customRegex.exec(prjContent)) !== null) {
+        const configName = match[1].trim();
+        // Add to the list only the configurations that are not already among the standard ones
+        if (!standardConfigs.includes(configName)) {
+          modeItems.push({
+            label: `Custom: ${configName}`,
+            description: `Custom build configuration from .prj`,
+            mode: 'release', // Fallback base mode, will be ignored by -config
+            isCustom: true,
+            customName: configName
+          });
+        }
+      }
+    } catch (e) {
+      this.output.appendLine(`[CVI] Could not parse custom configs from ${ref.absolutePath}`);
+    }
+
+    const selected = await vscode.window.showQuickPick(modeItems, {
+      canPickMany: true,
+      placeHolder: 'Select the build modes to compile sequentially'
+    });
+
+    if (!selected || selected.length === 0) {
+      return;
+    }
+
+    const actionChoice = await vscode.window.showQuickPick(
+      [
+        { label: 'Build', description: 'Sequential incremental build', rebuild: false },
+        { label: 'Rebuild', description: 'Sequential full rebuild (Rebuild All)', rebuild: true }
+      ],
+      { placeHolder: 'Select the batch build action' }
+    );
+
+    if (!actionChoice) {
+      return;
+    }
+
+    const installation = await this.requireCompiler();
+    if (!installation?.compileExe) {
+      return;
+    }
+
+    // Save the original state to restore it at the end
+    const originalMode = this.buildMode;
+    const originalCustomConfig = vscode.workspace.getConfiguration('labwindowsCvi').get<string>('customBuildConfiguration', '');
+    let successCount = 0;
+
+    this.output.show(true);
+    this.output.appendLine('='.repeat(80));
+    this.output.appendLine(` CVI BATCH BUILD | ${ref.name}`);
+    this.output.appendLine('='.repeat(80));
+    this.output.appendLine('');
+
+    try {
+      for (const item of selected) {
+        const configLabel = item.isCustom ? item.customName! : item.mode.toUpperCase();
+        this.output.appendLine(`--- [Batch Build] Setting build mode to: ${configLabel} ---`);
+        
+        // set the base buildMode
+        await vscode.workspace.getConfiguration('labwindowsCvi').update('buildMode', item.mode, vscode.ConfigurationTarget.Workspace);
+        
+        // Set the customBuildConfiguration if necessary, otherwise clear it
+        const customValue = item.isCustom ? item.customName : '';
+        await vscode.workspace.getConfiguration('labwindowsCvi').update('customBuildConfiguration', customValue, vscode.ConfigurationTarget.Workspace);
+        
+        const ok = await this.build(actionChoice.rebuild, ref);
+        if (!ok) {
+          this.output.appendLine(`\n[CVI] !!! Batch Build aborted: failed on ${configLabel} !!!`);
+          vscode.window.showErrorMessage(`LabWindows/CVI: Batch Build failed on ${configLabel} configuration.`);
+          return;
+        }
+        successCount++;
+      }
+
+      this.output.appendLine('');
+      this.output.appendLine('='.repeat(80));
+      this.output.appendLine(` BATCH BUILD COMPLETED SUCCESSFULLY (${successCount}/${selected.length} configurations)`);
+      this.output.appendLine('='.repeat(80));
+      vscode.window.showInformationMessage(`LabWindows/CVI: Batch Build completed successfully (${successCount} configurations).`);
+    } finally {
+      // Restore everything as it was before the batch
+      await vscode.workspace.getConfiguration('labwindowsCvi').update('buildMode', originalMode, vscode.ConfigurationTarget.Workspace);
+      await vscode.workspace.getConfiguration('labwindowsCvi').update('customBuildConfiguration', originalCustomConfig, vscode.ConfigurationTarget.Workspace);
+    }
+  }
+
   async compileFile(filePath: string, projectRef?: CviWorkspaceProjectRef): Promise<boolean> {
     const ref = projectRef ?? this.workspaces.activeProjectRef;
     if (!ref?.exists) {
