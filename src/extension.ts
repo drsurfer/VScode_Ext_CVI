@@ -220,6 +220,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     register('labwindowsCvi.build', () => builds.build(false)),
     register('labwindowsCvi.rebuild', () => builds.build(true)),
     register('labwindowsCvi.clean', () => builds.clean()),
+    register('labwindowsCvi.batchBuild', (node?: ProjectNode) => builds.batchBuildModal(node?.ref)),
     register('labwindowsCvi.showBuildProblems', () => builds.showBuildProblems()),
     register('labwindowsCvi.showFullBuildTrace', () => builds.showFullBuildTrace()),
     register('labwindowsCvi.run', () => builds.buildAndRun()),
