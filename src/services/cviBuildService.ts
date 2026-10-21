@@ -73,13 +73,18 @@ export class CviBuildService {
     const selected = await vscode.window.showQuickPick([
       { label: '$(tools) Build', value: 'build', description: 'Build the target and configured dependencies' },
       { label: '$(sync) Rebuild', value: 'rebuild', description: 'Force recompilation with compile.exe -rebuild' },
-      { label: '$(trash) Clean generated target', value: 'clean', description: 'Delete generated target files without touching source files' }
+      { label: '$(trash) Clean generated target', value: 'clean', description: 'Delete generated target files without touching source files' },
+      { label: '$(run-all) Batch Build...', value: 'batch', description: 'Build or rebuild multiple configurations sequentially' }
     ], { title: 'LabWindows/CVI build action' });
+    
     if (!selected) {
       return;
     }
+    
     if (selected.value === 'clean') {
       await this.clean(projectRef);
+    } else if (selected.value === 'batch') {
+      await this.batchBuildModal(projectRef);
     } else {
       await this.build(selected.value === 'rebuild', projectRef);
     }
