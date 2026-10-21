@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { IniDocument, IniSection } from './iniDocument';
 import { CviBuildMode, CviProject, CviProjectFile, CviRunOptions, CviWorkspace, CviWorkspaceProjectRef } from './types';
-import { fromCviPath, normalizeRelativePath, quote, splitCviLongValue, toCviPath, toCviRuntimeStoragePath, unquote } from '../utils/pathUtils';
+import { fromCviPath, normalizeRelativePath, quote, readCviTextFile, splitCviLongValue, toCviPath, toCviRuntimeStoragePath, unquote, writeCviTextFile } from '../utils/pathUtils';
 
 
 export interface CviVersionInfoSettings {
@@ -84,11 +84,11 @@ export interface CviNativeTargetSettings {
 }
 
 function readText(filePath: string): string {
-  return fs.readFileSync(filePath, 'utf8');
+  return readCviTextFile(filePath);
 }
 
 function writeText(filePath: string, content: string): void {
-  const current = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : undefined;
+  const current = fs.existsSync(filePath) ? readCviTextFile(filePath) : undefined;
   if (current === content) {
     return;
   }
@@ -97,7 +97,7 @@ function writeText(filePath: string, content: string): void {
     createNativeBackup(filePath, current);
   }
   const temporaryPath = `${filePath}.vscode-cvi-${process.pid}-${Date.now()}.tmp`;
-  fs.writeFileSync(temporaryPath, content, 'utf8');
+  writeCviTextFile(temporaryPath, content);
   try {
     fs.copyFileSync(temporaryPath, filePath);
   } finally {
@@ -126,7 +126,7 @@ function createNativeBackup(filePath: string, content: string): string {
   fs.mkdirSync(backupDirectory, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   const backupPath = path.join(backupDirectory, `${path.basename(filePath)}.${stamp}.bak`);
-  fs.writeFileSync(backupPath, content, 'utf8');
+  writeCviTextFile(backupPath, content);
   const prefix = `${path.basename(filePath)}.`;
   const backups = fs.readdirSync(backupDirectory)
     .filter((name: string) => name.startsWith(prefix) && name.endsWith('.bak'))

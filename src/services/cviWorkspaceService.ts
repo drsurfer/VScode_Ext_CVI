@@ -5,6 +5,7 @@ import { CviParser, defaultFolderForType } from '../model/cviParser';
 import { CviProject, CviProjectFile, CviWorkspace, CviWorkspaceProjectRef } from '../model/types';
 import { CviInstallationService } from './cviInstallationService';
 import { CviTemplateService } from './cviTemplateService';
+import { getConfiguredCviEncoding, readCviTextFile, writeCviTextFile } from '../utils/pathUtils';
 
 const LAST_WORKSPACE_KEY = 'labwindowsCvi.lastWorkspace';
 
@@ -28,7 +29,12 @@ export class CviWorkspaceService implements vscode.Disposable {
           this.refresh();
         }
       }),
-      vscode.workspace.onDidChangeWorkspaceFolders(() => void this.autoLoad())
+      vscode.workspace.onDidChangeWorkspaceFolders(() => void this.autoLoad()),
+      vscode.workspace.onDidChangeConfiguration((event) => {
+        if (event.affectsConfiguration('labwindowsCvi.fileEncoding') && this.workspace) {
+          void this.syncEditorEncoding();
+        }
+      })
     );
   }
 
@@ -116,6 +122,7 @@ export class CviWorkspaceService implements vscode.Disposable {
     }
     this.workspace = extension === '.cws' ? this.parser.parseWorkspace(filePath) : this.parser.parseStandaloneProject(filePath);
     await this.context.workspaceState.update(LAST_WORKSPACE_KEY, filePath);
+    await this.syncEditorEncoding();
     this.output.appendLine(`[CVI] Loaded ${extension === '.cws' ? 'workspace' : 'project'}: ${filePath}`);
     this.changeEmitter.fire();
     if (extension === '.cws') {
@@ -129,6 +136,18 @@ export class CviWorkspaceService implements vscode.Disposable {
           'Ignore'
         ).then((answer) => answer === 'Repair workspace' ? this.repairNativeWorkspaceCompatibility() : undefined);
       }
+    }
+  }
+
+  private async syncEditorEncoding(): Promise<void> {
+    if (!vscode.workspace.workspaceFolders?.length) {
+      return;
+    }
+    const targetEncoding = getConfiguredCviEncoding();
+    const filesConfig = vscode.workspace.getConfiguration('files');
+    if (filesConfig.get<string>('encoding') !== targetEncoding) {
+      await filesConfig.update('encoding', targetEncoding, vscode.ConfigurationTarget.Workspace);
+      this.output.appendLine(`[CVI] Synchronized VS Code workspace files.encoding to ${targetEncoding}.`);
     }
   }
 
@@ -646,9 +665,9 @@ export class CviWorkspaceService implements vscode.Disposable {
         return;
       }
     }
-    const source = fs.readFileSync(file.absolutePath, 'utf8');
+    const source = readCviTextFile(file.absolutePath);
     const header = generatePrototypeHeader(source, path.basename(headerPath));
-    fs.writeFileSync(headerPath, header, 'utf8');
+    writeCviTextFile(headerPath, header);
     this.parser.addFilesToProject(projectRef.absolutePath, [headerPath]);
     this.refresh();
     const document = await vscode.workspace.openTextDocument(vscode.Uri.file(headerPath));

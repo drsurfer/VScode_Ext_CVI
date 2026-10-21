@@ -1895,6 +1895,19 @@
             "Show normal report plus compile.exe commands and captured raw output in the main output channel."
           ],
           "description": "Controls how much information the structured LabWindows/CVI build report shows in the main output channel. Full raw output is always preserved in LabWindows/CVI - Build Trace."
+        },
+        "labwindowsCvi.fileEncoding": {
+          "type": "string",
+          "default": "windows1252",
+          "enum": [
+            "windows1252",
+            "utf8"
+          ],
+          "enumDescriptions": [
+            "Use Windows-1252 (ANSI) encoding for native CVI compatibility with non-ASCII characters.",
+            "Use UTF-8 encoding."
+          ],
+          "description": "Text encoding used when reading/writing CVI files (.cws, .prj, generated headers) and synchronized to the VS Code workspace files.encoding setting."
         }
       }
     },
