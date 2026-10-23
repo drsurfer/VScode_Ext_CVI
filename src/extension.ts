@@ -21,6 +21,7 @@ import { CviBreakpointSyncService } from './services/cviBreakpointSyncService';
 import { CviNativeCommandService } from './services/cviNativeCommandService';
 import { CviColorValueService } from './services/cviColorValueService';
 import { CviContextToolsService } from './services/cviContextToolsService';
+import { CviEncodingService } from './services/cviEncodingService';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const output = vscode.window.createOutputChannel('LabWindows/CVI');
@@ -36,6 +37,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const nativeCommands = new CviNativeCommandService(context, workspaces, installations, breakpointSync, output);
   const colorValues = new CviColorValueService();
   const contextTools = new CviContextToolsService(context);
+  const encodingService = new CviEncodingService(workspaces, output);
   const builds = new CviBuildService(parser, workspaces, installations, projectSettings, breakpointSync, output, buildTraceOutput, buildDiagnostics);
   const treeProvider = new CviTreeProvider(workspaces);
   const treeView = vscode.window.createTreeView('labwindowsCvi.workspaceExplorer', { treeDataProvider: treeProvider, dragAndDropController: treeProvider, showCollapseAll: true, canSelectMany: true });
@@ -147,6 +149,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     debugView,
     debugViewRegistration,
     cppTools,
+    encodingService,
     treeView,
     fileSymbolsView,
     completionRegistration,
@@ -323,7 +326,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     register('labwindowsCvi.findFile', (node?: FileNode) => node ? workspaces.findInDirectory(path.dirname(node.file.absolutePath)) : undefined),
     register('labwindowsCvi.saveAll', () => vscode.commands.executeCommand('workbench.action.files.saveAll')),
     register('labwindowsCvi.expandAll', () => focusTreeThen('list.expandAll')),
-    register('labwindowsCvi.collapseAll', () => focusTreeThen('list.collapseAll'))
+    register('labwindowsCvi.collapseAll', () => focusTreeThen('list.collapseAll')),
+    register('labwindowsCvi.sanitizeCurrentFile', () => encodingService.sanitizeActiveDocument())
   );
 
   ensureBundledCviLibraryPack(context, output);

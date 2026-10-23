@@ -766,6 +766,12 @@
         "title": "Generate Source From File Symbols...",
         "category": "LabWindows/CVI",
         "icon": "$(new-file)"
+      },
+      {
+        "command": "labwindowsCvi.sanitizeCurrentFile",
+        "title": "Sanitize Invisible / Incompatible Characters in Current File",
+        "category": "LabWindows/CVI",
+        "icon": "$(clear-all)"
       }
     ],
     "menus": {
@@ -1830,6 +1836,28 @@
             "Use UTF-8 encoding."
           ],
           "description": "Text encoding used when reading/writing CVI files (.cws, .prj, generated headers) and synchronized to the VS Code workspace files.encoding setting."
+        },
+        "labwindowsCvi.sanitizeOnSave": {
+          "type": "string",
+          "default": "normalizeWhitespace",
+          "enum": [
+            "off",
+            "normalizeWhitespace",
+            "windows1252Compatible",
+            "strictAscii"
+          ],
+          "enumDescriptions": [
+            "Do not automatically sanitize characters when saving.",
+            "Normalize non-breaking spaces (0xA0) and invisible spaces to standard ASCII spaces, and remove zero-width characters.",
+            "Normalize invisible whitespace/punctuation, and replace any characters not representable in Windows-1252 (ANSI) with '?'.",
+            "Normalize invisible whitespace/punctuation, and replace all non-ASCII characters (> 127) with '?'."
+          ],
+          "description": "Automatically sanitizes non-breaking spaces (0xA0) and incompatible characters when saving C/C++ source files in a LabWindows/CVI workspace."
+        },
+        "labwindowsCvi.warnOnEncodingIssues": {
+          "type": "boolean",
+          "default": true,
+          "description": "Log warnings in the LabWindows/CVI output channel and notify when opening a file in Windows-1252 mode that contains non-breaking spaces (0xA0), replacement characters, or characters incompatible with Windows-1252."
         }
       }
     },
