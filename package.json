@@ -152,6 +152,10 @@
         "icon": "$(play)"
       },
       {
+        "command": "labwindowsCvi.batchBuild",
+        "title": "LabWindows/CVI: Batch Build"
+      },
+      {
         "command": "labwindowsCvi.openWorkspaceInCvi",
         "title": "Open Workspace in CVI",
         "icon": "$(link-external)"
