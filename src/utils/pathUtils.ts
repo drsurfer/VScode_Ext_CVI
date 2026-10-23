@@ -160,3 +160,6 @@ export function writeCviTextFile(filePath: string, content: string): void {
   }
   fs.writeFileSync(filePath, encodeWindows1252(content));
 }
+export function isWindows1252CodePoint(code: number): boolean {
+  return code <= 0x7F || (code >= 0xA0 && code <= 0xFF) || CP1252_EXTRA_ENCODE[code] !== undefined;
+}

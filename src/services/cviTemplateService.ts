@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { CviInstallationService } from './cviInstallationService';
+import { writeCviTextFile } from '../utils/pathUtils';
 
 interface StoredFileTemplate {
   id: string;
@@ -3502,7 +3503,11 @@ export class CviTemplateService {
         continue;
       }
       fs.mkdirSync(path.dirname(file.absolutePath), { recursive: true });
-      fs.writeFileSync(file.absolutePath, file.contents, file.binary ? undefined : 'utf8');
+      if (file.binary) {
+        fs.writeFileSync(file.absolutePath, file.contents);
+      } else {
+        writeCviTextFile(file.absolutePath, String(file.contents));
+      }
       createdFiles.push(file.absolutePath);
       this.output.appendLine(`[CVI Templates] Wrote ${file.absolutePath}`);
     }
