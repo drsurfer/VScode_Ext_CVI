@@ -74,7 +74,7 @@ export class CviBuildService {
       { label: '$(tools) Build', value: 'build', description: 'Build the target and configured dependencies' },
       { label: '$(sync) Rebuild', value: 'rebuild', description: 'Force recompilation with compile.exe -rebuild' },
       { label: '$(trash) Clean generated target', value: 'clean', description: 'Delete generated target files without touching source files' },
-      { label: '$(run-all) Batch Build...', value: 'batch', description: 'Build or rebuild multiple configurations sequentially' }
+      { label: '$(tasklist) Batch Build...', value: 'batch', description: 'Build or rebuild multiple configurations sequentially' }
     ], { title: 'LabWindows/CVI build action' });
     
     if (!selected) {
